@@ -47,9 +47,15 @@ app.post("/api/generate", async (req, res) => {
 
     const data = await response.json();
 
-    res.json({
-      result: data.choices?.[0]?.message?.content || "No result returned."
-    });
+if (data.error) {
+  return res.json({
+    result: "OpenAI 错误：" + data.error.message
+  });
+}
+
+res.json({
+  result: data.choices?.[0]?.message?.content || JSON.stringify(data)
+});
   } catch (error) {
     res.status(500).json({
       error: error.message
