@@ -2,7 +2,12 @@ import express from "express";
 import Stripe from "stripe";
 
 const app = express();
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+
+let stripe = null;
+
+if (process.env.STRIPE_SECRET_KEY) {
+  stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+}
 
 app.use(express.json());
 
@@ -39,6 +44,24 @@ app.get("/", (req, res) => {
 // ✅ 创建 Stripe 支付
 app.post("/api/checkout", async (req, res) => {
   try {
+    if (!stripe) {
+      return res.status(500).json({
+        error: "Stripe key is missing. Please set STRIPE_SECRET_KEY in Render."
+      });
+    }
+
+    if (!process.env.STRIPE_PRICE_ID) {
+      return res.status(500).json({
+        error: "STRIPE_PRICE_ID is missing in Render."
+      });
+    }
+
+    if (!process.env.WEBSITE_URL) {
+      return res.status(500).json({
+        error: "WEBSITE_URL is missing in Render."
+      });
+    }
+
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       line_items: [
@@ -72,7 +95,6 @@ app.post("/api/generate", async (req, res) => {
 
     const count = usageMap.get(key) || 0;
 
-    // ❗限制免费次数
     if (count >= FREE_LIMIT) {
       return res.json({
         result: "🚫 今日免费次数已用完，请升级 Pro",
@@ -80,7 +102,6 @@ app.post("/api/generate", async (req, res) => {
       });
     }
 
-    // 👉 调用 OpenAI
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -120,7 +141,6 @@ Only output final sentence.
 
     const result = data.choices?.[0]?.message?.content;
 
-    // 👉 计数+1
     usageMap.set(key, count + 1);
 
     res.json({
