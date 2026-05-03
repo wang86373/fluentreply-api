@@ -26,7 +26,7 @@ app.use((req, res, next) => {
 
 // ✅ 免费次数限制（内存版）
 const usageMap = new Map();
-const FREE_LIMIT = 10;
+const FREE_LIMIT = 100;
 
 function getToday() {
   return new Date().toISOString().split("T")[0];
